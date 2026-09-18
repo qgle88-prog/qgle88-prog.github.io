@@ -50,6 +50,29 @@ gh auth status >/dev/null 2>&1 || die "未登录 GitHub。请先运行: gh auth 
 GH_USER="$(gh api user --jq .login 2>/dev/null)" || die "无法读取 GitHub 用户名"
 ok "已登录为 ${C_CYN}${GH_USER}${C_RESET}"
 
+# --- 1.5 安全检查：绝不把内部目录推上公开仓库 -------------------------------
+step "安全检查"
+if [ ! -f .gitignore ] || ! grep -q '^\.workbuddy/' .gitignore 2>/dev/null; then
+  printf '.workbuddy/\n' >> .gitignore
+  ok "已补写 .gitignore（忽略 .workbuddy/）"
+else
+  ok ".gitignore 已包含 .workbuddy/"
+fi
+
+# 万一历史上被追踪过，这里再兜一层，避免 git add -A 又把它捞回来
+if git ls-files --error-unmatch .workbuddy >/dev/null 2>&1; then
+  git rm -r --cached .workbuddy -q
+  warn "检测到 .workbuddy 曾被追踪，已从索引移除（防止内部笔记被发布）"
+else
+  ok ".workbuddy 未被 git 追踪"
+fi
+
+# 兜底：列出即将提交的文件，若含敏感目录则直接中止
+STAGED_SENSITIVE="$(git ls-files | grep -E '^\.workbuddy/' || true)"
+if [ -n "$STAGED_SENSITIVE" ]; then
+  die "中止：以下内部文件仍在版本控制中，拒绝发布：\n$STAGED_SENSITIVE"
+fi
+
 # --- 2. 仓库名 --------------------------------------------------------------
 # 用 <用户名>.github.io 作为仓库名，得到最干净的 Pages 地址
 REPO_NAME="${REPO_NAME:-${GH_USER}.github.io}"
