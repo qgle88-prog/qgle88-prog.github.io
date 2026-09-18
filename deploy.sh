@@ -35,6 +35,14 @@ SITE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SITE_DIR"
 
 DOMAIN="${1:-}"
+DOMAIN_FROM_CNAME=0
+
+# 没传域名参数时，沿用 CNAME 文件里已绑定的域名，
+# 避免日常更新时忘记带参数、把域名配置漏掉
+if [ -z "$DOMAIN" ] && [ -f CNAME ] && [ -s CNAME ]; then
+  DOMAIN="$(head -1 CNAME | tr -d '[:space:]')"
+  DOMAIN_FROM_CNAME=1
+fi
 
 printf '\n%s个人主页发布%s  %s%s%s\n\n' "$C_CYN" "$C_RESET" "$C_DIM" "$SITE_DIR" "$C_RESET"
 
@@ -108,8 +116,12 @@ fi
 # --- 4. CNAME（自定义域名）--------------------------------------------------
 if [ -n "$DOMAIN" ]; then
   step "写入 CNAME 文件"
-  printf '%s\n' "$DOMAIN" > CNAME
-  ok "CNAME → ${DOMAIN}"
+  if [ "$DOMAIN_FROM_CNAME" = "1" ]; then
+    ok "沿用现有域名 ${DOMAIN}（来自 CNAME 文件）"
+  else
+    printf '%s\n' "$DOMAIN" > CNAME
+    ok "CNAME → ${DOMAIN}"
+  fi
 else
   warn "未指定域名，跳过 CNAME（之后可用 ./deploy.sh <域名> 补上）"
 fi
