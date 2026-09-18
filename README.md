@@ -1,4 +1,4 @@
-# 个人主页
+# akrobot.cn — 个人主页
 
 一个纯静态的个人主页：无框架、无构建步骤、无依赖。三个文件，扔到任何静态托管上都能跑。
 
@@ -6,6 +6,17 @@
 - 内置滚动动画、导航高亮、邮箱一键复制
 - 响应式，手机端可用
 - 深海军蓝 + 青色配色
+
+## 当前部署状态
+
+| 项 | 值 |
+|---|---|
+| GitHub 账号 | `qgle88-prog` |
+| 仓库 | `qgle88-prog/qgle88-prog.github.io` |
+| 分支 / 目录 | `main` / `/ (root)` |
+| 自定义域名 | `akrobot.cn` |
+| 默认地址 | https://qgle88-prog.github.io/ |
+| DNS 服务商 | 阿里云（万网，NS = `dns1/dns2.hichina.com`） |
 
 ## 文件结构
 
@@ -16,6 +27,7 @@
 ├── assets/
 │   ├── style.css       样式（配色变量集中在文件顶部）
 │   └── main.js         主题切换、滚动动画、复制按钮
+├── CNAME               自定义域名（内容为 akrobot.cn）
 ├── deploy.sh           一键发布到 GitHub Pages
 ├── robots.txt
 └── .nojekyll           告诉 GitHub Pages 不要跑 Jekyll
@@ -48,74 +60,108 @@ python3 -m http.server 8899
 
 **复制一张项目卡片**：把整个 `<article class="card reveal">...</article>` 复制一份改内容即可。
 
-## 发布到 GitHub Pages
+## 重新部署
 
 ```bash
-./deploy.sh              # 只发布，地址是 https://<用户名>.github.io
-./deploy.sh aking.com    # 发布并绑定自定义域名
+./deploy.sh              # 只推送，保持现有域名
+./deploy.sh akrobot.cn   # 推送并确认域名绑定
 ```
 
 脚本会自动：检查登录状态 → 初始化 git → 创建仓库 → 推送 → 开启 Pages →
-（可选）绑定域名。可以重复执行，已完成的步骤会自动跳过。
+绑定域名。**可以重复执行**，已完成的步骤会自动跳过。改完内容跑一次就行。
 
-首次使用需要先登录 GitHub：
+---
 
-```bash
-brew install gh
-gh auth login --web
+# 绑定域名 akrobot.cn（待完成）
+
+GitHub 端已经绑好了（仓库 Settings → Pages 里 Custom domain 已填 `akrobot.cn`）。
+**剩下的是在阿里云加 DNS 记录。**
+
+## 第一步：删掉旧的 A 记录 ⚠️
+
+当前 `akrobot.cn` 上有一条旧记录，指向阿里云的默认页：
+
+```
+@    A    60.205.34.132      ← 必须删掉
 ```
 
-## 绑定自定义域名
+登录 **阿里云** → 控制台 → **域名** → `akrobot.cn` → **解析设置**，
+找到上面这条记录，**删除**它。
 
-### 第一步：加 DNS 记录
+> 这一步不能省。如果只加新记录不删旧记录，域名会随机在阿里云和 GitHub 之间跳，
+> 访问时好时坏，而且 HTTPS 证书永远签发不下来。
 
-登录你的域名服务商（阿里云 / 腾讯云 / Cloudflare / Namecheap 等），
-在 DNS 解析设置里添加：
+## 第二步：添加这 5 条记录
 
-**A 记录 —— 绑定根域名（四条都要，一条都不能少）**
+在同一个「解析设置」页面点「添加记录」，逐条添加：
 
-| 主机记录 | 类型 | 记录值 |
-|---|---|---|
-| `@` | A | `185.199.108.153` |
-| `@` | A | `185.199.109.153` |
-| `@` | A | `185.199.110.153` |
-| `@` | A | `185.199.111.153` |
+| 记录类型 | 主机记录 | 解析线路 | 记录值 | TTL |
+|---|---|---|---|---|
+| A | `@` | 默认 | `185.199.108.153` | 10 分钟 |
+| A | `@` | 默认 | `185.199.109.153` | 10 分钟 |
+| A | `@` | 默认 | `185.199.110.153` | 10 分钟 |
+| A | `@` | 默认 | `185.199.111.153` | 10 分钟 |
+| CNAME | `www` | 默认 | `qgle88-prog.github.io` | 10 分钟 |
 
-**CNAME 记录 —— 绑定 www 子域名**
+几点注意：
 
-| 主机记录 | 类型 | 记录值 |
-|---|---|---|
-| `www` | CNAME | `<你的用户名>.github.io` |
+- **四条 A 记录一条都不能少。** 这是 GitHub Pages 的负载均衡地址池，
+  少一条就会有一部分访问失败。
+- 主机记录 `@` 在阿里云就填一个 `@` 字符，代表 `akrobot.cn` 本身。
+- CNAME 的记录值**不要**加 `https://`、不要加结尾的点、不要加路径，
+  就是干干净净的 `qgle88-prog.github.io`。
+- 阿里云的 TTL 选项里选「10 分钟」，改起来生效快。
 
-> 注意 CNAME 的值末尾**不要**加点和路径，就是 `username.github.io`。
+## 第三步：等生效
 
-### 第二步：在 GitHub 端填入域名
-
-仓库 → **Settings** → 左侧 **Pages** → **Custom domain** 填你的域名 → **Save**。
-
-等 DNS 生效（一般几分钟，最长几小时），同一页面的 **Enforce HTTPS** 勾选上，
-GitHub 会自动签发免费证书。
-
-### 验证
+一般 **10 分钟到 1 小时**。用下面命令确认（把结果和上面的表对一下）：
 
 ```bash
-dig +short aking.com          # 应返回上面四条 GitHub 的 IP
-dig +short www.aking.com      # 应返回 <用户名>.github.io
+dig +short akrobot.cn          # 应返回 185.199.108.153 ~ 111.153 四条
+dig +short www.akrobot.cn      # 应返回 qgle88-prog.github.io
 ```
 
-### 如果域名 DNS 托管在 Cloudflare
+DNS 生效后，GitHub 会自动去申请 Let's Encrypt 免费证书，这又要几分钟到几小时。
 
-把代理状态（橙色云朵）**关掉**，改成「仅 DNS」，否则 GitHub 签发证书会失败。
-等 HTTPS 生效后可以再打开代理。
+## 第四步：开启强制 HTTPS
+
+证书签发好（Pages 页面出现 "Enforce HTTPS" 可勾选框）之后，勾上它，
+所有 HTTP 访问会自动跳转到 HTTPS。
+
+也可以在仓库 Settings → Pages 页面手动操作。
+
+## 验证清单
+
+- [ ] 阿里云的旧 A 记录（60.205.34.132）已删除
+- [ ] 四条 A 记录已添加
+- [ ] www 的 CNAME 已添加
+- [ ] `dig +short akrobot.cn` 返回四条 GitHub IP
+- [ ] https://akrobot.cn 能打开主页
+- [ ] https://www.akrobot.cn 也能打开
+- [ ] 地址栏显示锁头图标（HTTPS 生效）
+
+---
+
+## 关于 .cn 域名和国内访问
+
+**备案**：本站在 GitHub Pages 上，服务器在境外，**不需要 ICP 备案**。
+只有当你想把网站搬到国内服务器（阿里云 ECS、腾讯云等）时才需要备案。
+
+**访问速度**：GitHub Pages 的服务器在国外，中国大陆访问速度**不稳定**，
+有时快有时慢，个别地区可能打不开。这是它的固有限制，不是配置问题。
+
+如果国内访问速度很重要，可以考虑换成免费的 **腾讯云 EdgeOne Pages**
+或 **Cloudflare Pages** —— 前者在国内有节点但需要备案，后者不需要备案、
+国内访问通常比 GitHub Pages 稳一些。需要换的时候告诉我。
 
 ## 常见问题
 
 **打开是 404** — 检查 Pages 设置里的分支是不是 `main`、目录是不是 `/ (root)`。
 首次部署后要等 1–2 分钟。
 
-**HTTPS 一直不可用** — 通常是 DNS 还没生效。先在终端 `dig` 确认，再等一会儿。
-Cloudflare 用户注意关掉代理。
+**HTTPS 一直不可用** — 九成是 DNS 还没生效，先在终端 `dig` 确认。
+另外确认阿里云那边**没有**多余的 A 记录残留。
 
-**改了内容没更新** — GitHub Pages 有 CDN 缓存，改完 push 后等一两分钟，强制刷新（Cmd+Shift+R）。
+**改了内容没更新** — GitHub Pages 有 CDN 缓存，push 后等一两分钟，强制刷新（Cmd+Shift+R）。
 
-**想换仓库名** — `REPO_NAME=myrepo ./deploy.sh aking.com`
+**想换仓库名** — `REPO_NAME=myrepo ./deploy.sh akrobot.cn`
