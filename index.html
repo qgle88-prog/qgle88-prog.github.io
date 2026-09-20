@@ -18,6 +18,9 @@
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230D9488'/><text y='72' x='50' text-anchor='middle' font-size='58' font-family='monospace' font-weight='bold' fill='%2304211E'>A</text></svg>">
 <link rel="stylesheet" href="assets/style.css">
+<!-- 动画元素默认 opacity:0，靠 main.js 加 .in 显现。
+     万一 JS 没加载成功，这里是兜底，否则整页内容会全部看不见 -->
+<noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
 </head>
 <body>
 
@@ -34,6 +37,7 @@
     <nav class="nav" aria-label="主导航">
       <a href="/articles/">文章</a>
       <a href="/works/">作品</a>
+      <a href="/downloads/">下载</a>
       <a href="/notes/">动态</a>
       <a href="#about">关于</a>
       <a href="#contact">联系</a>
@@ -137,9 +141,28 @@
   </div>
 </section>
 
+<!-- ============================ Downloads ============================ -->
+<!-- 下载卡片由构建脚本从 content/downloads/ 注入 —— 请到 /admin/ 后台维护，不要在此手写 -->
+<section class="section" id="downloads">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="kicker">Downloads</span>
+      <h2>可以下载的</h2>
+      <p>整理好、有说明、能直接拿去用的东西。每个包里都写了用法和已知边界，不藏坑。</p>
+      <p style="margin-top:16px"><a class="crumb" href="/downloads/">查看全部下载
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a></p>
+    </div>
+
+    <div class="grid">
+<!-- BUILD:DOWNLOADS -->
+    </div>
+  </div>
+</section>
+
 <!-- ============================ Notes ============================ -->
 <!-- 最新文章由构建脚本从 content/articles/ 注入 —— 请到 /admin/ 后台维护，不要在此手写 -->
-<section class="section" id="notes">
+<section class="section tinted" id="notes">
   <div class="wrap">
     <div class="section-head reveal">
       <span class="kicker">Latest</span>
@@ -157,7 +180,7 @@
 </section>
 
 <!-- ============================ About ============================ -->
-<section class="section tinted" id="about">
+<section class="section" id="about">
   <div class="wrap">
     <div class="section-head reveal">
       <span class="kicker">About</span>
@@ -206,7 +229,7 @@
 
 <!-- ============================ Contact ============================ -->
 <!-- 编辑提示：把下面的邮箱和 GitHub 换成你自己的真实地址 -->
-<section class="section" id="contact">
+<section class="section tinted" id="contact">
   <div class="wrap">
     <div class="contact-card reveal">
       <h2>有想聊的，随时找我</h2>
@@ -243,7 +266,7 @@
     <span>© <span id="year">2026</span> Aking Huang</span>
     <span class="footer-links">
       <a href="#work">在做的事</a>
-      <a href="#notes">笔记</a>
+      <a href="#downloads">可以下载的</a>
       <a href="#about">关于</a>
       <a href="#top">回到顶部</a>
     </span>

@@ -1,9 +1,12 @@
 # akrobot.cn — 个人主页
 
-一个纯静态的个人主页：无框架、无构建步骤、无依赖。三个文件，扔到任何静态托管上都能跑。
+一个静态个人主页：**纯静态输出 + 浏览器后台 + 构建期预渲染**。
+没有前端框架，没有数据库，内容以 Markdown 存在仓库里。
 
-- 自动跟随系统深浅色，右上角按钮可手动切换（跟随系统 → 浅色 → 深色，循环）
-- 内置滚动动画、导航高亮、邮箱一键复制
+- 后台在 `/admin/`，浏览器里就能写文章、加作品、发动态、上传下载包
+- 保存后自动重新构建、自动上线（GitHub Actions）
+- 自动跟随系统深浅色，右上角按钮可手动切换（跟随系统 → 浅色 → 深色）
+- 滚动动画、导航高亮、邮箱一键复制
 - 响应式，手机端可用
 - 深海军蓝 + 青色配色
 
@@ -13,8 +16,9 @@
 |---|---|
 | GitHub 账号 | `qgle88-prog` |
 | 仓库 | `qgle88-prog/qgle88-prog.github.io` |
-| 分支 / 目录 | `main` / `/ (root)` |
-| 自定义域名 | `akrobot.cn` |
+| 分支 | `main` |
+| 发布方式 | GitHub Actions（构建产物 `_site/`） |
+| 自定义域名 | `akrobot.cn`（已绑定，HTTPS 已开启） |
 | 默认地址 | https://qgle88-prog.github.io/ |
 | DNS 服务商 | 阿里云（万网，NS = `dns1/dns2.hichina.com`） |
 
@@ -22,173 +26,220 @@
 
 ```
 .
-├── index.html          主页面（所有内容都在这里）
-├── 404.html            404 页面
+├── index.html              首页模板（含 BUILD: 注入标记，不要手写卡片）
+├── 404.html                404 页面
+│
+├── content/                ★ 内容都在这里，全部是 Markdown
+│   ├── articles/           文章（长文）
+│   ├── works/              作品（工具 / 项目）
+│   ├── notes/              动态（短更新）
+│   └── downloads/          下载（脚本 / 软件 / 模板 / 数据集）
+│
+├── admin/
+│   ├── index.html          后台页面（Sveltia CMS）
+│   └── config.yml          后台字段配置 ← 想改字段改这里
+│
+├── build/
+│   ├── build.mjs           构建脚本：Markdown → 静态 HTML
+│   └── serve.mjs           本地预览服务器
+│
 ├── assets/
-│   ├── style.css       样式（配色变量集中在文件顶部）
-│   └── main.js         主题切换、滚动动画、复制按钮
-├── CNAME               自定义域名（内容为 akrobot.cn）
-├── deploy.sh           一键发布到 GitHub Pages
+│   ├── style.css           样式（配色变量在文件顶部）
+│   ├── main.js             主题切换、滚动动画、复制按钮
+│   └── uploads/            ★ 下载包放这里
+│
+├── .github/workflows/
+│   └── deploy.yml          推送后自动构建 + 发布
+│
+├── CNAME                   自定义域名（内容为 akrobot.cn）
+├── deploy.sh               本地手动发布（备用）
+├── watch.sh                本地改动自动同步（备用）
 ├── robots.txt
-└── .nojekyll           告诉 GitHub Pages 不要跑 Jekyll
+└── .nojekyll
 ```
 
 ## 本地预览
 
 ```bash
-cd 个人首页
-python3 -m http.server 8899
-# 打开 http://127.0.0.1:8899
+npm install          # 只需第一次
+npm run build        # 生成 _site/
+npm run serve        # 起本地服务器，默认 8899 端口
 ```
 
-直接双击 `index.html` 也能看，但用本地服务器更接近真实情况。
+打开 http://127.0.0.1:8899 。
+
+改内容时另开一个终端跑 `npm run dev`，它会在构建后自动起服务器。
+
+> ⚠️ **不要直接双击 `index.html` 看效果。** 首页里有 `<!-- BUILD:WORKS -->`
+> 这类占位标记，必须经过构建脚本替换才是完整页面。直接打开会看到空白的卡片区。
 
 ## 怎么改内容
 
-所有文字都在 `index.html` 里，按区块找就行：
+### 方式一：浏览器后台（推荐）
+
+访问 **https://akrobot.cn/admin/**
+
+首次使用需要生成一个 GitHub 访问令牌：
+
+1. 打开 https://github.com/settings/personal-access-tokens/new
+2. **Token name** 随便填，比如 `akrobot-cms`
+3. **Expiration** 建议选 90 天或更长（到期后重新生成一个即可）
+4. **Repository access** → 选 `Only select repositories` → 勾 `qgle88-prog.github.io`
+5. **Permissions** → `Repository permissions` →
+   **Contents** 设为 `Read and write`（其他都不用给）
+6. 点 `Generate token`，把 `github_pat_...` 开头的字符串**复制下来**
+   （只显示一次，关掉页面就没了）
+7. 回到 `/admin/`，点 `Sign in with Token`，粘贴进去
+
+> 令牌存在浏览器本地，**不要在公司电脑或公共电脑上登录**。
+> 换电脑要重新生成一次。
+
+登录后左侧有四块：**文章 / 作品 / 下载 / 动态**，点进去就能新建、编辑、删除。
+写完后点 `Publish`（或 `Save`），右下角会提示提交成功，
+大约 1 分钟后线上就更新了。
+
+### 方式二：直接改 Markdown
+
+`content/` 下面的 `.md` 文件都是「前置元数据 + 正文」的格式：
+
+```markdown
+---
+title: 文章标题
+slug: my-article
+date: 2026-09-20
+summary: 一句话摘要，会显示在列表页
+tags: [自动化, Python]
+draft: false
+---
+
+正文从这里开始，用 Markdown 写。
+```
+
+加一篇新文章，就往 `content/articles/` 里加一个 `.md` 文件。
+`slug` 决定网址（`/articles/<slug>/`），改它会让旧链接失效。
+
+### 方式三：改样式和页面骨架
 
 | 想改什么 | 找哪里 |
 |---|---|
-| 大标题、自我介绍、技能标签 | `<section class="hero" id="top">` |
-| 项目卡片 | `<section class="section tinted" id="work">` 里的 `<article class="card">` |
-| 笔记条目 | `<section class="section" id="notes">` 里的 `<a class="note">` |
-| 关于我、右侧信息栏 | `<section class="section tinted" id="about">` |
-| 邮箱、GitHub | `<section class="section" id="contact">` |
+| 配色、间距、圆角 | `assets/style.css` 顶部的 CSS 变量 |
+| 首页的自我介绍、技能标签、事实条 | `index.html` 的 `<section class="hero">` |
+| 首页版块标题和说明文字 | `index.html` 对应 `<section>` 里的 `.section-head` |
+| 关于我、联系方式 | `index.html` 的 `<section id="about">` / `<section id="contact">` |
+| 子页面的排版与文案 | `build/build.mjs` 里对应的 `layout()` 调用 |
+| 导航项 | `build/build.mjs` 的 `NAV` 数组 + `index.html` 的 `<nav>` |
 
-配色改 `assets/style.css` 开头的变量。品牌色是 `--accent`（青色）和
-`--accent-2`（天蓝），浅色和深色两套都要改。
+**不要**在 `index.html` 里手写作品卡片或下载卡片。
+首页的「在做的事」「可以下载的」「最近写的」三个区块都是构建时注入的，
+标记分别是 `<!-- BUILD:WORKS -->`、`<!-- BUILD:DOWNLOADS -->`、`<!-- BUILD:LATEST -->`。
 
-**复制一张项目卡片**：把整个 `<article class="card reveal">...</article>` 复制一份改内容即可。
+## 下载区怎么用
+
+下载区支持两种来源，**优先用打包文件**：
+
+| 情况 | 怎么做 |
+|---|---|
+| 文件小（建议 ≤ 20 MB） | 后台里「打包文件」直接上传，走站内直链 |
+| 文件大（几十 MB 以上） | 传到 GitHub Releases，把链接填进「外部下载地址」 |
+
+卡片上的**文件大小是构建时自动算的**，不用手填——只要你上传的是真实文件。
+外链的情况不显示大小。
+
+> 大文件不要直接塞进仓库：Git 会把每个历史版本都存下来，
+> 仓库会越滚越大，而且克隆会变得很慢。
+
+下载包里建议放一个 `README.md` 写清用法和已知边界。
 
 ## 重新部署
 
-**本地改动不会自动上线。** GitHub Pages 服务的是仓库里的内容，不是你电脑上的文件。
-改完必须提交并推送才会生效。
+### 自动（正常情况下）
 
-改完内容后，跑一条命令即可：
+推送到 `main` 分支，GitHub Actions 会自动构建并发布。
+在后台改内容也是走这条路，不用管。
 
-```bash
-./deploy.sh
-```
+看构建状态：仓库页面 → **Actions** 标签。
 
-域名会自动从 `CNAME` 文件读取沿用，**不用每次带参数**。
-脚本会自动：安全检查 → 提交 → 推送 → 确认 Pages 与域名绑定。
-重复执行也没问题。
-
-### 如果想让它在后台自动同步
+### 手动（本地）
 
 ```bash
-./watch.sh          # 每 10 秒检查一次，有改动就自动发布
-./watch.sh 30       # 自定义间隔（秒）
+./deploy.sh            # 域名自动从 CNAME 读取，不用带参数
+./deploy.sh            # 重复执行也没问题
 ```
 
-保持终端窗口开着，按 `Ctrl+C` 停止。改完文件保存，几秒后自动上线，
-不用再手动跑命令。（本机没装 `fswatch`，所以用纯 bash 轮询实现，零依赖。）
+脚本会：安全检查 → 提交 → 推送 → 确认 Pages 与域名绑定。
 
-改完想验证线上是否更新了，加个时间戳参数强制刷新：
+### 本地改动自动同步
 
 ```bash
-curl -s "https://akrobot.cn/?t=$(date +%s)" | grep 关键词
+./watch.sh             # 每 10 秒检查一次，有改动就自动发布
+./watch.sh 30          # 自定义间隔（秒）
 ```
+
+保持终端窗口开着，`Ctrl+C` 停止。改完文件保存，几秒后自动上线。
 
 > ⚠️ **`.workbuddy/` 目录已被 `.gitignore` 排除，不会发布。**
 > `deploy.sh` 里有三层防护，如果发现内部文件仍被追踪会直接中止发布。
 > 往页面里加内容时不要动 `.gitignore`。
 
-## 怎么改内容
-
----
-
-# 绑定域名 akrobot.cn（待完成）
-
-GitHub 端已经绑好了（仓库 Settings → Pages 里 Custom domain 已填 `akrobot.cn`）。
-**剩下的是在阿里云加 DNS 记录。**
-
-## 第一步：删掉旧的 A 记录 ⚠️
-
-当前 `akrobot.cn` 上有一条旧记录，指向阿里云的默认页：
-
-```
-@    A    60.205.34.132      ← 必须删掉
-```
-
-登录 **阿里云** → 控制台 → **域名** → `akrobot.cn` → **解析设置**，
-找到上面这条记录，**删除**它。
-
-> 这一步不能省。如果只加新记录不删旧记录，域名会随机在阿里云和 GitHub 之间跳，
-> 访问时好时坏，而且 HTTPS 证书永远签发不下来。
-
-## 第二步：添加这 5 条记录
-
-在同一个「解析设置」页面点「添加记录」，逐条添加：
-
-| 记录类型 | 主机记录 | 解析线路 | 记录值 | TTL |
-|---|---|---|---|---|
-| A | `@` | 默认 | `185.199.108.153` | 10 分钟 |
-| A | `@` | 默认 | `185.199.109.153` | 10 分钟 |
-| A | `@` | 默认 | `185.199.110.153` | 10 分钟 |
-| A | `@` | 默认 | `185.199.111.153` | 10 分钟 |
-| CNAME | `www` | 默认 | `qgle88-prog.github.io` | 10 分钟 |
-
-几点注意：
-
-- **四条 A 记录一条都不能少。** 这是 GitHub Pages 的负载均衡地址池，
-  少一条就会有一部分访问失败。
-- 主机记录 `@` 在阿里云就填一个 `@` 字符，代表 `akrobot.cn` 本身。
-- CNAME 的记录值**不要**加 `https://`、不要加结尾的点、不要加路径，
-  就是干干净净的 `qgle88-prog.github.io`。
-- 阿里云的 TTL 选项里选「10 分钟」，改起来生效快。
-
-## 第三步：等生效
-
-一般 **10 分钟到 1 小时**。用下面命令确认（把结果和上面的表对一下）：
+验证线上是否更新了，加时间戳强制刷新：
 
 ```bash
-dig +short akrobot.cn          # 应返回 185.199.108.153 ~ 111.153 四条
+curl -s "https://akrobot.cn/?t=$(date +%s)" | grep 关键词
+```
+
+## 域名与 DNS（已完成，留档备查）
+
+域名 `akrobot.cn` 在**阿里云**解析，需要这几条记录：
+
+| 记录类型 | 主机记录 | 记录值 |
+|---|---|---|
+| A | `@` | `185.199.108.153` |
+| A | `@` | `185.199.109.153` |
+| A | `@` | `185.199.110.153` |
+| A | `@` | `185.199.111.153` |
+| CNAME | `www` | `qgle88-prog.github.io` |
+
+- **四条 A 记录一条都不能少**，这是 GitHub Pages 的负载均衡地址池。
+- 主机记录 `@` 代表 `akrobot.cn` 本身。
+- CNAME 的值不要加 `https://`、不要加结尾的点、不要加路径。
+- 域名上**不能有别的 A 记录残留**（比如阿里云的默认页 `60.205.34.132`），
+  否则会出现「时好时坏」并且 HTTPS 证书永远签不下来。
+
+验证：
+
+```bash
+dig +short akrobot.cn          # 应返回上面四条 GitHub IP
 dig +short www.akrobot.cn      # 应返回 qgle88-prog.github.io
 ```
 
-DNS 生效后，GitHub 会自动去申请 Let's Encrypt 免费证书，这又要几分钟到几小时。
-
-## 第四步：开启强制 HTTPS
-
-证书签发好（Pages 页面出现 "Enforce HTTPS" 可勾选框）之后，勾上它，
-所有 HTTP 访问会自动跳转到 HTTPS。
-
-也可以在仓库 Settings → Pages 页面手动操作。
-
-## 验证清单
-
-- [ ] 阿里云的旧 A 记录（60.205.34.132）已删除
-- [ ] 四条 A 记录已添加
-- [ ] www 的 CNAME 已添加
-- [ ] `dig +short akrobot.cn` 返回四条 GitHub IP
-- [ ] https://akrobot.cn 能打开主页
-- [ ] https://www.akrobot.cn 也能打开
-- [ ] 地址栏显示锁头图标（HTTPS 生效）
-
----
-
 ## 关于 .cn 域名和国内访问
 
-**备案**：本站在 GitHub Pages 上，服务器在境外，**不需要 ICP 备案**。
-只有当你想把网站搬到国内服务器（阿里云 ECS、腾讯云等）时才需要备案。
+**备案**：本站托管在 GitHub Pages，服务器在境外，**不需要 ICP 备案**。
+只有把网站搬到国内服务器（阿里云 ECS、腾讯云等）时才需要。
 
-**访问速度**：GitHub Pages 的服务器在国外，中国大陆访问速度**不稳定**，
-有时快有时慢，个别地区可能打不开。这是它的固有限制，不是配置问题。
+**访问速度**：GitHub Pages 的服务器在国外，中国大陆访问**不稳定**，
+有时快有时慢，个别地区可能打不开。这是固有限制，不是配置问题。
 
-如果国内访问速度很重要，可以考虑换成免费的 **腾讯云 EdgeOne Pages**
-或 **Cloudflare Pages** —— 前者在国内有节点但需要备案，后者不需要备案、
-国内访问通常比 GitHub Pages 稳一些。需要换的时候告诉我。
+如果国内访问速度很重要，可以考虑换到免费的 **腾讯云 EdgeOne Pages**
+或 **Cloudflare Pages** —— 后者不需要备案，国内访问通常比 GitHub Pages 稳一些。
 
 ## 常见问题
 
-**打开是 404** — 检查 Pages 设置里的分支是不是 `main`、目录是不是 `/ (root)`。
-首次部署后要等 1–2 分钟。
+**打开是 404** — 检查仓库 Settings → Pages，
+`Source` 应该是 **GitHub Actions**。首次部署后等 1–2 分钟。
 
-**HTTPS 一直不可用** — 九成是 DNS 还没生效，先在终端 `dig` 确认。
+**HTTPS 一直不可用** — 九成是 DNS 还没生效，先 `dig` 确认。
 另外确认阿里云那边**没有**多余的 A 记录残留。
 
-**改了内容没更新** — GitHub Pages 有 CDN 缓存，push 后等一两分钟，强制刷新（Cmd+Shift+R）。
+**改了内容没更新** — 先看 **Actions** 标签里构建是否成功。
+构建通过了还看不到，就是 CDN 缓存，等一两分钟强制刷新（Cmd+Shift+R）。
 
-**想换仓库名** — `REPO_NAME=myrepo ./deploy.sh akrobot.cn`
+**后台登录不了** — 令牌过期了，重新生成一个。
+确认 `Contents` 权限是 `Read and write`，并且勾的是 `qgle88-prog.github.io` 这个仓库。
+
+**推送被拒，提示 workflow scope** — 令牌缺少 `workflow` 权限。
+在终端跑 `gh auth refresh -h github.com -s workflow`，
+按提示在浏览器里完成授权。
+
+**首页卡片区是空的** — 没有跑构建，或者构建报错了。
+本地跑 `npm run build` 看输出；线上看 Actions 日志。

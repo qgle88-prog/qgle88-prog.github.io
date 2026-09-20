@@ -153,6 +153,92 @@ collections:
         widget: markdown
         required: false
 
+  # ---------------------------------------------------------------- 下载 ----
+  - name: downloads
+    label: 下载
+    label_singular: 下载项
+    description: 可以直接下载的脚本、软件、模板、数据集。发布后出现在「下载」页和首页。
+    folder: content/downloads
+    create: true
+    delete: true
+    extension: md
+    format: frontmatter
+    slug: "{{fields.slug}}"
+    preview_path: "downloads/{{fields.slug}}/"
+    sortable_fields: [date, title, category]
+    # 打包文件统一放这里，构建时自动算体积
+    media_folder: assets/uploads
+    public_folder: /assets/uploads
+    fields:
+      - label: 名称
+        name: title
+        widget: string
+        hint: 显示在卡片和列表上的名字
+      - label: 链接标识
+        name: slug
+        widget: string
+        required: true
+        pattern: ['^[a-z0-9]+(?:-[a-z0-9]+)*$', '只能用小写字母、数字和连字符，例如 fasta-batch-utils']
+        hint: 英文短标识，决定网址
+      - label: 发布日期
+        name: date
+        widget: datetime
+        date_format: "YYYY-MM-DD"
+        time_format: false
+        format: "YYYY-MM-DD"
+        picker_utc: true
+      - label: 分类
+        name: category
+        widget: select
+        options:
+          - 脚本
+          - 软件
+          - 数据集
+          - 模板
+          - 其他
+        default: 脚本
+        hint: 决定卡片上的分类标签颜色
+      - label: 版本
+        name: version
+        widget: string
+        required: false
+        hint: 可选，例如 v1.2.0。留空就不显示
+      - label: 适用平台
+        name: platform
+        widget: select
+        options:
+          - 跨平台
+          - macOS
+          - Windows
+          - Linux
+          - Web
+          - 通用
+        default: 跨平台
+      - label: 一句话说明
+        name: summary
+        widget: text
+        hint: 显示在卡片上，建议 60 字以内
+      - label: 打包文件
+        name: file
+        widget: file
+        required: false
+        hint: 上传 zip 等文件，走站内直链。建议单文件不超过 20 MB —— 更大的请用下面的「外部下载地址」
+      - label: 外部下载地址
+        name: link
+        widget: string
+        required: false
+        hint: 可选。大文件建议放 GitHub Releases 再把链接贴这里。留空则用上面的打包文件
+      - label: 详细介绍
+        name: body
+        widget: markdown
+        required: false
+      - label: 草稿
+        name: draft
+        widget: boolean
+        default: false
+        required: false
+        hint: 打开后不会发布到线上
+
   # ---------------------------------------------------------------- 动态 ----
   - name: notes
     label: 动态
