@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>内容管理</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#080E1A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F6F9FC" media="(prefers-color-scheme: light)">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230D9488'/><text y='72' x='50' text-anchor='middle' font-size='58' font-family='monospace' font-weight='bold' fill='%2304211E'>A</text></svg>">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #0B1220; }
+  #boot {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #8A9CB8; font-size: 14px; text-align: center; padding: 24px;
+  }
+  #boot .spin {
+    width: 22px; height: 22px; margin: 0 auto 14px;
+    border: 2px solid rgba(45,212,191,0.25);
+    border-top-color: #2DD4BF; border-radius: 50%;
+    animation: sp 0.8s linear infinite;
+  }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  #boot .hint { margin-top: 10px; font-size: 12.5px; color: #5A6B85; line-height: 1.7; }
+  #boot .hint a { color: #2DD4BF; }
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div>
+    <div class="spin"></div>
+    正在加载内容管理界面…
+    <div class="hint">
+      首次使用需点击「Sign In with Token」并粘贴 GitHub 访问令牌<br>
+      详细步骤见 <a href="/README-后台使用说明.md">后台使用说明</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js" type="module"></script>
+
+<script>
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      var b = document.getElementById('boot');
+      if (b && !customElements.get('sveltia-cms')) {
+        b.innerHTML = '<div><strong style="color:#E9EFF8">界面加载失败</strong>' +
+          '<div class="hint">可能是网络问题（Sveltia 从 unpkg.com 加载，国内访问可能较慢）。<br>' +
+          '刷新页面重试，或换一个网络环境。</div></div>';
+      }
+    }, 12000);
+  });
+</script>
+
+</body>
+</html>

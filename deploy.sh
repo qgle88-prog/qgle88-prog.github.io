@@ -158,24 +158,43 @@ step "推送到 GitHub"
 git push -u origin main 2>&1 | sed 's/^/  /'
 ok "推送完成"
 
-# --- 8. 开启 GitHub Pages ---------------------------------------------------
-step "开启 GitHub Pages"
-if gh api "repos/${REPO_FULL}/pages" >/dev/null 2>&1; then
-  ok "Pages 已启用"
-  gh api --method PUT "repos/${REPO_FULL}/pages" \
-    -f "build_type=legacy" \
-    -f "source[branch]=main" \
-    -f "source[path]=/" >/dev/null 2>&1 \
-    && ok "Pages 源已确认为 main /" \
-    || warn "Pages 源更新返回非零（通常无妨）"
+# --- 8. Pages 配置 ----------------------------------------------------------
+# 本站用 GitHub Actions 构建：推送后由 Action 跑 npm run build 生成 _site/ 再部署。
+# 所以这里绝不能把 Pages 改回 legacy（分支）模式 —— 那会覆盖掉 Actions 的部署。
+if [ -f .github/workflows/deploy.yml ]; then
+  step "GitHub Pages（Actions 构建模式）"
+  ok "检测到 .github/workflows/deploy.yml，构建交给 Action"
+
+  CURRENT_TYPE="$(gh api "repos/${REPO_FULL}/pages" --jq .build_type 2>/dev/null || echo '')"
+  if [ "$CURRENT_TYPE" = "workflow" ]; then
+    ok "Pages 已是 Actions 构建模式"
+  else
+    warn "Pages 当前为「${CURRENT_TYPE:-未知}」，正在切换为 Actions 模式…"
+    if gh api --method PUT "repos/${REPO_FULL}/pages" -f "build_type=workflow" >/dev/null 2>&1; then
+      ok "已切换为 Actions 构建模式"
+    else
+      warn "切换失败，请到 Settings → Pages 把 Source 改成 GitHub Actions"
+    fi
+  fi
 else
-  if gh api --method POST "repos/${REPO_FULL}/pages" \
+  step "GitHub Pages（分支模式）"
+  if gh api "repos/${REPO_FULL}/pages" >/dev/null 2>&1; then
+    ok "Pages 已启用"
+    gh api --method PUT "repos/${REPO_FULL}/pages" \
       -f "build_type=legacy" \
       -f "source[branch]=main" \
-      -f "source[path]=/" >/dev/null 2>&1; then
-    ok "Pages 已开启（main 分支根目录）"
+      -f "source[path]=/" >/dev/null 2>&1 \
+      && ok "Pages 源已确认为 main /" \
+      || warn "Pages 源更新返回非零（通常无妨）"
   else
-    warn "自动开启失败，请手动到 Settings → Pages 选择 main / (root)"
+    if gh api --method POST "repos/${REPO_FULL}/pages" \
+        -f "build_type=legacy" \
+        -f "source[branch]=main" \
+        -f "source[path]=/" >/dev/null 2>&1; then
+      ok "Pages 已开启（main 分支根目录）"
+    else
+      warn "自动开启失败，请手动到 Settings → Pages 选择 main / (root)"
+    fi
   fi
 fi
 

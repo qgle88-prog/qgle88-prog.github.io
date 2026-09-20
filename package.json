@@ -1,0 +1,19 @@
+{
+  "name": "akrobot-homepage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "akrobot.cn 个人主页 —— 纯静态站 + Sveltia CMS 后台，构建期预渲染",
+  "scripts": {
+    "build": "node build/build.mjs",
+    "serve": "node build/serve.mjs",
+    "dev": "node build/build.mjs && node build/serve.mjs"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "marked": "^15.0.7"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
