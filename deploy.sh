@@ -153,12 +153,44 @@ else
   ok "origin 已添加"
 fi
 
-# --- 7. 推送 ----------------------------------------------------------------
-step "推送到 GitHub"
-git push -u origin main 2>&1 | sed 's/^/  /'
-ok "推送完成"
+# --- 7. 先与远端同步 --------------------------------------------------------
+# 为什么需要这一步：后台（/admin/）发布的内容是直接提交到 GitHub 上的，
+# 本地文件夹不会自动更新。所以本地很可能落后于远端。
+# 这时候直接 push 会被拒（non-fast-forward），脚本就在这一步卡住。
+# 先把本地提交挪到远端最新之上，再推，就不会撞车。
+step "与远端同步"
+git fetch origin main --quiet 2>/dev/null || true
 
-# --- 8. Pages 配置 ----------------------------------------------------------
+if git rev-parse --verify origin/main >/dev/null 2>&1; then
+  BEHIND="$(git rev-list --count main..origin/main 2>/dev/null || echo 0)"
+  AHEAD="$(git rev-list --count origin/main..main 2>/dev/null || echo 0)"
+
+  if [ "${BEHIND:-0}" -gt 0 ]; then
+    warn "远端有 ${BEHIND} 个新提交（多半是你在后台发布的）"
+    warn "正在把本地 ${AHEAD} 个提交挪到远端之上…"
+    if git rebase origin/main >/dev/null 2>&1; then
+      ok "已同步到远端最新，本地改动保留在上方"
+    else
+      git rebase --abort >/dev/null 2>&1 || true
+      die "同步失败：本地改动和后台发布的内容改到了同一处。
+    本地文件都在，没有丢。手动处理一下再重跑：
+      git pull --rebase     # 按提示解决冲突
+      ./deploy.sh"
+    fi
+  else
+    ok "本地已是最新（远端无新提交）"
+  fi
+fi
+
+# --- 8. 推送 ----------------------------------------------------------------
+step "推送到 GitHub"
+if git push -u origin main 2>&1 | sed 's/^/  /'; then
+  ok "推送完成"
+else
+  die "推送失败。若提示 non-fast-forward，先跑 git pull --rebase 再重试"
+fi
+
+# --- 9. Pages 配置 ----------------------------------------------------------
 # 本站用 GitHub Actions 构建：推送后由 Action 跑 npm run build 生成 _site/ 再部署。
 # 所以这里绝不能把 Pages 改回 legacy（分支）模式 —— 那会覆盖掉 Actions 的部署。
 if [ -f .github/workflows/deploy.yml ]; then
@@ -198,7 +230,7 @@ else
   fi
 fi
 
-# --- 9. 绑定自定义域名 ------------------------------------------------------
+# --- 10. 绑定自定义域名 ------------------------------------------------------
 if [ -n "$DOMAIN" ]; then
   step "在 GitHub 端绑定域名"
   if gh api --method PUT "repos/${REPO_FULL}/pages" -f "cname=${DOMAIN}" >/dev/null 2>&1; then
@@ -208,7 +240,7 @@ if [ -n "$DOMAIN" ]; then
   fi
 fi
 
-# --- 10. 结果 ---------------------------------------------------------------
+# --- 11. 结果 ---------------------------------------------------------------
 printf '\n%s%s 发布完成 %s\n\n' "$C_GRN" "$C_RESET" "$C_RESET"
 printf '  默认地址   %shttps://%s.github.io/%s\n' "$C_CYN" "$GH_USER" "$([ "$REPO_NAME" = "${GH_USER}.github.io" ] && echo '' || echo "$REPO_NAME")"
 [ -n "$DOMAIN" ] && printf '  自定义域名 %shttps://%s%s\n' "$C_CYN" "$DOMAIN" "$C_RESET"
