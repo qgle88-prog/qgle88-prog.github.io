@@ -438,12 +438,12 @@ if (home.includes('<!-- BUILD:WORKS -->')) {
   console.warn('  ! index.html 缺少 <!-- BUILD:WORKS --> 标记，作品未注入首页');
 }
 if (home.includes('<!-- BUILD:LATEST -->')) {
-  home = home.replace('<!-- BUILD:LATEST -->', latestNotes(articles) || '');
+  home = home.replace('<!-- BUILD:LATEST -->', latestNotes(articles) || '<p class="empty">文章整理中，稍后更新。</p>');
 } else {
   console.warn('  ! index.html 缺少 <!-- BUILD:LATEST --> 标记，最新文章未注入首页');
 }
 if (home.includes('<!-- BUILD:DOWNLOADS -->')) {
-  home = home.replace('<!-- BUILD:DOWNLOADS -->', downloadsGridInner(downloads, 3) || '');
+  home = home.replace('<!-- BUILD:DOWNLOADS -->', downloadsGridInner(downloads, 3) || '<p class="empty">暂无公开下载，准备好后会在这里发布。</p>');
 } else {
   console.warn('  ! index.html 缺少 <!-- BUILD:DOWNLOADS --> 标记，下载未注入首页');
 }
@@ -464,7 +464,7 @@ const articlesListBody = `
     ${
       articles.length
         ? `<div class="post-list">\n${articles.map(articleItem).join('\n')}\n    </div>`
-        : '<div class="empty">还没有文章。到 <a href="/admin/">后台</a> 写第一篇吧。</div>'
+        : '<div class="empty">文章整理中，稍后更新。</div>'
     }
   </div>
 </section>`;
@@ -653,7 +653,7 @@ const downloadsBody = `
     ${
       downloads.length
         ? `<div class="dl-grid">\n${downloadsGridInner(downloads)}\n    </div>`
-        : '<div class="empty">还没有可下载的内容。到 <a href="/admin/">后台</a> 添加第一个吧。</div>'
+        : '<div class="empty">暂无公开下载，准备好后会在这里发布。</div>'
     }
   </div>
 </section>`;
@@ -789,7 +789,7 @@ ${n.html}
       </article>`
             )
             .join('\n')}\n    </div>`
-        : '<div class="empty">还没有动态。到 <a href="/admin/">后台</a> 发一条吧。</div>'
+        : '<div class="empty">暂无动态。</div>'
     }
   </div>
 </section>`;
